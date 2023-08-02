@@ -483,9 +483,14 @@ async def parse_nostr():
     relay_manager = RelayManager(timeout=2)
     select_relays, relay_indexes = select_random_relays()
 
+
     for relay in select_relays:
-        logging.info("Adding relay" + relay)
-        relay_manager.add_relay(relay)
+        logging.info("[Nostr] Adding relay" + relay)
+        try:
+            relay_manager.add_relay(relay)
+        except Exception as e:
+            logging.info(f"[Nostr] Relay Error {e}")
+
 
     # to find a specific post on nostr, we will need to use the id of the post in the following way:
     # filters = FiltersList([Filters(kinds=[EventKind.TEXT_NOTE], limit=[limit], ids=["<id of the post>"])])
