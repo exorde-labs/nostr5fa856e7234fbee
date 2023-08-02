@@ -303,7 +303,6 @@ ALL_RELAYS = {
     "wss://nostrja-kari.heguro.com",
     "wss://nostr.coinfundit.com",
     "wss://nostr-01.yakihonne.com",
-    "wss://nostr.beta3.dev",
     "wss://nostr.kmchu.net",
     "wss://relay.nostrassets.com",
     "wss://relay.nostr.wirednet.jp",
