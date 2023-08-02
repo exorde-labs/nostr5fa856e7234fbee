@@ -8,6 +8,7 @@ import uuid
 import random
 import asyncio
 import logging
+import hashlib
 from typing import AsyncGenerator
 from datetime import datetime
 from exorde_data import (
@@ -16,6 +17,7 @@ from exorde_data import (
     CreatedAt,
     Url,
     Domain,
+    ExternalId
 )
 
 RANDOM_NUMBER_OF_RELAYS_TO_USE = 10
@@ -468,6 +470,12 @@ def check_for_max_age_with_correct_format(_date, _max_age):
     else:
         return False
 
+def generate_fixed_length_hash(input_string, hash_length=32):
+    hash_object = hashlib.sha256()  # You can choose a different hash algorithm if desired
+    hash_object.update(input_string.encode('utf-8'))
+    hash_value = hash_object.digest()[:hash_length]
+    hex_hash = hash_value.hex()
+    return hex_hash
 
 async def parse_nostr():
     logging.basicConfig(level=logging.INFO)
@@ -499,11 +507,17 @@ async def parse_nostr():
                 index_string = ""
                 for index in relay_indexes:
                     index_string += str(index) + "/"
+                external_id_str = index_string + str(event_msg.event.id)
+                content_hex_hash = generate_fixed_length_hash(event_msg.event.content)
+                forged_URL = "https://nostr/" + content_hex_hash
                 yield Item(
                     content=Content(event_msg.event.content),
                     created_at=CreatedAt(date),
-                    url=Url("https://nostr/" + index_string + str(event_msg.event.id)),
-                    domain=Domain("nostr.social"))
+                    # url=Url("https://nostr/" + index_string + str(event_msg.event.id)),
+                    url = forged_URL,
+                    domain=Domain("nostr.social"),
+                    external_id=ExternalId(external_id_str),
+                )
 
     relay_manager.close_all_relay_connections()
 
@@ -516,6 +530,6 @@ async def query(parameters: dict) -> AsyncGenerator[Item, None]:
     async for item in parse_nostr():
         yielded_items += 1
         yield item
-        logging.info(f"[nostr.social] Found new post :\t posted at {item.created_at}, URL = {item.url}")
+        logging.info(f"[nostr.social] Found new post :\t posted at {item.created_at}, URL = {item.url}, Id = {item.external_id}")
         if yielded_items >= maximum_items_to_collect:
             break
