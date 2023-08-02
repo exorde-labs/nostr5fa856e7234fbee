@@ -519,7 +519,7 @@ async def parse_nostr():
                     content=Content(event_msg.event.content),
                     created_at=CreatedAt(date),
                     # url=Url("https://nostr/" + index_string + str(event_msg.event.id)),
-                    url = forged_URL,
+                    url = Url(str(forged_URL)),
                     domain=Domain("nostr.social"),
                     external_id=ExternalId(external_id_str),
                 )
