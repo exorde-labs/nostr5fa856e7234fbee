@@ -7,6 +7,7 @@ import nest_asyncio
 import uuid
 import random
 import asyncio
+import re
 import logging
 from typing import AsyncGenerator
 from datetime import datetime, timedelta
@@ -132,7 +133,6 @@ async def parse_nostr(min_post_length, max_items=DEFAULT_MAXIMUM_ITEMS):
         current_ids = []
         content_checker = []  # some of the content is posted multiple times on different relays at the same time, with different ids
         while relay_manager.message_pool.has_events():
-            logging.info(f"[NOSTR] Processing {processed_items} / {max_items} items")
             if processed_items >= max_items:
                 break
 
@@ -143,7 +143,11 @@ async def parse_nostr(min_post_length, max_items=DEFAULT_MAXIMUM_ITEMS):
             date = date.strftime("%Y-%m-%dT%H:%M:%S.00Z")
 
             content_ = event_msg.event.content
-
+            # counts how many chars are in the content, outside of potential URLs (e.g. "https://nostr.social")
+            # use regex to remove URLs from the content: http:// & https:// for max efficiency
+            url_stripped_content = re.sub(r"http\S+", "", content_)
+            if len(url_stripped_content) < min_post_length:
+                continue         
 
             if check_for_max_age_with_correct_format(date, DEFAULT_OLDNESS_SECONDS):
                 if event_msg.event.id not in current_ids and content_ not in content_checker:  # new item that we can select
@@ -183,3 +187,15 @@ async def query(parameters: dict) -> AsyncGenerator[Item, None]:
         yield item
         if yielded_items >= maximum_items_to_collect:
             break
+
+async def test_query():
+    params = {
+        "max_oldness_seconds": DEFAULT_OLDNESS_SECONDS,
+        "maximum_items_to_collect": DEFAULT_MAXIMUM_ITEMS,
+        "min_post_length": DEFAULT_MIN_POST_LENGTH
+    }
+    try:
+        async for item in query(params):
+            assert isinstance(item, Item)
+    except ValueError as e:
+        logging.exception(f"Error: {str(e)}")
